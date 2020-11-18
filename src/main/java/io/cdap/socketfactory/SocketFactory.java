@@ -24,6 +24,7 @@ import com.mysql.cj.protocol.SocketConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Properties;
@@ -46,6 +47,9 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
     return bytesWritten.get();
   }
 
+  public SocketFactory() {
+    bytesWritten = new AtomicLong();
+  }
 
   @Override
   public <T extends Closeable> T connect(
@@ -72,8 +76,9 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
         throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
       }
     }
-    return socket;
+    return (T) socket;
   }
+
   // Cloud SQL sockets always use TLS and the socket returned by connect above is already TLS-ready.
   // It is fine to implement these as no-ops.
   @Override
@@ -86,8 +91,8 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
       SocketConnection socketConnection, ServerSession serverSession) throws IOException {
     LOG.error("In performTlsHandshake");
     @SuppressWarnings("unchecked")
-    T socket = (T) socketConnection.getMysqlSocket();
-    return socket;
+    T sock = (T) socketConnection.getMysqlSocket();
+    return sock;
   }
 
   @Override
