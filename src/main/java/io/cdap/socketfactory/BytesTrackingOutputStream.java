@@ -39,7 +39,7 @@ public class BytesTrackingOutputStream extends OutputStream {
 
   @Override
   public void write(int data) throws IOException {
-    write(new byte[] {(byte) data}, 0, 1);
+    write(new byte[]{(byte) data}, 0, 1);
   }
 
   @Override

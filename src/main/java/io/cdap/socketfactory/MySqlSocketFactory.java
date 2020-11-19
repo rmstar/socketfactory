@@ -20,9 +20,7 @@ import com.google.common.base.Strings;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.protocol.ServerSession;
 import com.mysql.cj.protocol.SocketConnection;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mysql.cj.protocol.SocketFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -33,10 +31,9 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * A MySQL {@link SocketFactory} that keeps track of the number of bytes written.
  */
-public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
-  private static final Logger LOG = LoggerFactory.getLogger(SocketFactory.class);
+public class MySqlSocketFactory implements SocketFactory {
   private static String delegateClass;
-  private static AtomicLong bytesWritten;
+  private static AtomicLong bytesWritten = new AtomicLong(0);
   private Socket socket;
 
   public static void setDelegateClass(String name) {
@@ -47,13 +44,9 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
     return bytesWritten.get();
   }
 
-  public SocketFactory() {
-    bytesWritten = new AtomicLong();
-  }
-
   @Override
   public <T extends Closeable> T connect(
-      String host, int portNumber, PropertySet props, int loginTimeout) throws IOException {
+    String host, int portNumber, PropertySet props, int loginTimeout) throws IOException {
     return connect(host, portNumber, props.exposeAsProperties(), loginTimeout);
   }
 
@@ -62,8 +55,7 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
    * to version 8.0.13. This change is required for backwards compatibility.
    */
   public <T extends Closeable> T connect(
-      String hostname, int portNumber, Properties props, int loginTimeout) throws IOException {
-    LOG.error("In connect");
+    String hostname, int portNumber, Properties props, int loginTimeout) throws IOException {
     if (Strings.isNullOrEmpty(delegateClass)) {
       Socket delegate = javax.net.SocketFactory.getDefault().createSocket(hostname, portNumber);
       socket = new BytesTrackingSocket(delegate, bytesWritten);
@@ -83,13 +75,11 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
   // It is fine to implement these as no-ops.
   @Override
   public void beforeHandshake() {
-    LOG.error("In beforeHandshake");
   }
 
   @Override
   public <T extends Closeable> T performTlsHandshake(
-      SocketConnection socketConnection, ServerSession serverSession) throws IOException {
-    LOG.error("In performTlsHandshake");
+    SocketConnection socketConnection, ServerSession serverSession) throws IOException {
     @SuppressWarnings("unchecked")
     T sock = (T) socketConnection.getMysqlSocket();
     return sock;
@@ -97,6 +87,5 @@ public class SocketFactory implements com.mysql.cj.protocol.SocketFactory {
 
   @Override
   public void afterHandshake() {
-    LOG.error("In afterHandshake");
   }
 }
