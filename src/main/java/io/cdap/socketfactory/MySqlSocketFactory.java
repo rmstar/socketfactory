@@ -61,8 +61,8 @@ public class MySqlSocketFactory implements SocketFactory {
       socket = new BytesTrackingSocket(delegate, bytesWritten);
     } else {
       try {
-        javax.net.SocketFactory fac = (javax.net.SocketFactory) Class.forName(delegateClass).newInstance();
-        Socket delegate = fac.createSocket(hostname, portNumber);
+        com.google.cloud.sql.mysql.SocketFactory fac = (com.google.cloud.sql.mysql.SocketFactory) Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.connect(hostname, portNumber, props, loginTimeout);
         socket = new BytesTrackingSocket(delegate, bytesWritten);
       } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
         throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
