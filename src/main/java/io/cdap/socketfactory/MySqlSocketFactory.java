@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class MySqlSocketFactory implements SocketFactory {
   private static String delegateClass;
   private static AtomicLong bytesWritten = new AtomicLong(0);
+
   private Socket socket;
 
   public static void setDelegateClass(String name) {
