@@ -32,10 +32,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class BytesTrackingSocket extends Socket {
   private Socket delegate;
   BytesTrackingOutputStream outputStream;
+  AtomicLong bytesWritten;
 
   public BytesTrackingSocket(Socket delegate, AtomicLong bytesWritten) throws IOException {
     this.delegate = delegate;
-    this.outputStream = new BytesTrackingOutputStream(delegate.getOutputStream(), bytesWritten);
+    this.bytesWritten = bytesWritten;
+    if (delegate.isConnected()) {
+      this.outputStream = new BytesTrackingOutputStream(delegate.getOutputStream(), bytesWritten);
+    }
   }
 
   @Override
@@ -51,11 +55,17 @@ public class BytesTrackingSocket extends Socket {
   @Override
   public void connect(SocketAddress endpoint) throws IOException {
     delegate.connect(endpoint);
+    if (outputStream == null) {
+      outputStream = new BytesTrackingOutputStream(delegate.getOutputStream(), bytesWritten);
+    }
   }
 
   @Override
   public void connect(SocketAddress endpoint, int timeout) throws IOException {
     delegate.connect(endpoint, timeout);
+    if (outputStream == null) {
+      outputStream = new BytesTrackingOutputStream(delegate.getOutputStream(), bytesWritten);
+    }
   }
 
   @Override

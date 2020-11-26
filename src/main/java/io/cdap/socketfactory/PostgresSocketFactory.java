@@ -16,14 +16,11 @@
 
 package io.cdap.socketfactory;
 
-import com.google.cloud.sql.core.CoreSocketFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.net.SocketFactory;
 
@@ -31,17 +28,8 @@ import javax.net.SocketFactory;
  * A Postgres {@link SocketFactory} that keeps track of the number of bytes written.
  */
 public class PostgresSocketFactory extends SocketFactory {
-  private static final Logger LOG = LoggerFactory.getLogger(MySqlSocketFactory.class);
-  private static final String DEPRECATED_SOCKET_ARG = "SocketFactoryArg";
-  private static final String POSTGRES_SUFFIX = "/.s.PGSQL.5432";
   private static String delegateClass;
   private static AtomicLong bytesWritten = new AtomicLong(0);
-
-  private Properties props;
-
-  static {
-    CoreSocketFactory.addArtifactId("postgres-socket-factory");
-  }
 
   public static void setDelegateClass(String name) {
     delegateClass = name;
@@ -51,42 +39,17 @@ public class PostgresSocketFactory extends SocketFactory {
     return bytesWritten.get();
   }
 
-
-  /**
-   * Implements the {@link SocketFactory} constructor, which can be used to create authenticated
-   * connections to a Cloud SQL instance.
-   */
-  public PostgresSocketFactory(Properties info) {
-    String oldInstanceKey = info.getProperty(DEPRECATED_SOCKET_ARG);
-    if (oldInstanceKey != null) {
-      LOG.warn(
-        String.format(
-          "The '%s' property has been deprecated. Please update your postgres driver and use"
-            + "the  '%s' property in your JDBC url instead.",
-          DEPRECATED_SOCKET_ARG, CoreSocketFactory.CLOUD_SQL_INSTANCE_PROPERTY));
-      info.setProperty(CoreSocketFactory.CLOUD_SQL_INSTANCE_PROPERTY, oldInstanceKey);
-    }
-    this.props = info;
-  }
-
-  @Deprecated
-  public PostgresSocketFactory(String instanceName) {
-    // Deprecated constructor for converting 'SocketFactoryArg' to 'CloudSqlInstance'
-    this(createDefaultProperties(instanceName));
-  }
-
-  private static Properties createDefaultProperties(String instanceName) {
-    Properties info = new Properties();
-    info.setProperty(DEPRECATED_SOCKET_ARG, instanceName);
-    return info;
-  }
-
   @Override
   public Socket createSocket() throws IOException {
     try {
-      com.google.cloud.sql.mysql.SocketFactory fac = (com.google.cloud.sql.mysql.SocketFactory) Class.forName(delegateClass).newInstance();
-      Socket delegate = CoreSocketFactory.connect(props, POSTGRES_SUFFIX);
-      return new BytesTrackingSocket(delegate, bytesWritten);
+      if (!Strings.isNullOrEmpty(delegateClass)) {
+        com.google.cloud.sql.postgres.SocketFactory fac = (com.google.cloud.sql.postgres.SocketFactory) Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.createSocket();
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      } else {
+        Socket delegate = javax.net.SocketFactory.getDefault().createSocket();
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      }
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
     }
