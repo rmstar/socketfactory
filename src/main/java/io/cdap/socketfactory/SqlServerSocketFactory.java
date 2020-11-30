@@ -16,12 +16,11 @@
 
 package io.cdap.socketfactory;
 
-import com.google.cloud.sql.core.CoreSocketFactory;
+import com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.net.SocketFactory;
 
@@ -32,12 +31,6 @@ public class SqlServerSocketFactory extends SocketFactory {
   private static String delegateClass;
   private static AtomicLong bytesWritten = new AtomicLong(0);
 
-  private Properties props = new Properties();
-
-  static {
-    CoreSocketFactory.addArtifactId("cloud-sql-connector-jdbc-sqlserver");
-  }
-
   public static void setDelegateClass(String name) {
     delegateClass = name;
   }
@@ -46,16 +39,18 @@ public class SqlServerSocketFactory extends SocketFactory {
     return bytesWritten.get();
   }
 
-  public SqlServerSocketFactory(String instanceName) {
-    this.props.setProperty(CoreSocketFactory.CLOUD_SQL_INSTANCE_PROPERTY, instanceName);
-  }
-
   @Override
   public Socket createSocket() throws IOException {
     try {
-      com.google.cloud.sql.mysql.SocketFactory fac = (com.google.cloud.sql.mysql.SocketFactory) Class.forName(delegateClass).newInstance();
-      Socket delegate = CoreSocketFactory.connect(props);
-      return new BytesTrackingSocket(delegate, bytesWritten);
+      if (!Strings.isNullOrEmpty(delegateClass)) {
+        com.google.cloud.sql.sqlserver.SocketFactory fac = (com.google.cloud.sql.sqlserver.SocketFactory)
+          Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.createSocket();
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      } else {
+        Socket delegate = javax.net.SocketFactory.getDefault().createSocket();
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      }
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
     }
@@ -63,27 +58,71 @@ public class SqlServerSocketFactory extends SocketFactory {
 
   @Override
   public Socket createSocket(String host, int port) throws IOException {
-    Socket delegate = javax.net.SocketFactory.getDefault().createSocket(host, port);
-    return new BytesTrackingSocket(delegate, bytesWritten);
+    try {
+      if (!Strings.isNullOrEmpty(delegateClass)) {
+        com.google.cloud.sql.sqlserver.SocketFactory fac = (com.google.cloud.sql.sqlserver.SocketFactory)
+          Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.createSocket(host, port);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      } else {
+        Socket delegate = javax.net.SocketFactory.getDefault().createSocket(host, port);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      }
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
+    }
   }
 
   @Override
   public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
     throws IOException {
-    Socket delegate = javax.net.SocketFactory.getDefault().createSocket(host, port, localHost, localPort);
-    return new BytesTrackingSocket(delegate, bytesWritten);
+    try {
+      if (!Strings.isNullOrEmpty(delegateClass)) {
+        com.google.cloud.sql.sqlserver.SocketFactory fac = (com.google.cloud.sql.sqlserver.SocketFactory)
+          Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.createSocket(host, port, localHost, localPort);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      } else {
+        Socket delegate = javax.net.SocketFactory.getDefault().createSocket(host, port, localHost, localPort);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      }
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
+    }
   }
 
   @Override
   public Socket createSocket(InetAddress host, int port) throws IOException {
-    Socket delegate = javax.net.SocketFactory.getDefault().createSocket(host, port);
-    return new BytesTrackingSocket(delegate, bytesWritten);
+    try {
+      if (!Strings.isNullOrEmpty(delegateClass)) {
+        com.google.cloud.sql.sqlserver.SocketFactory fac = (com.google.cloud.sql.sqlserver.SocketFactory)
+          Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.createSocket(host, port);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      } else {
+        Socket delegate = javax.net.SocketFactory.getDefault().createSocket(host, port);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      }
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
+    }
   }
 
   @Override
   public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
     throws IOException {
-    Socket delegate = javax.net.SocketFactory.getDefault().createSocket(address, port, localAddress, localPort);
-    return new BytesTrackingSocket(delegate, bytesWritten);
+    try {
+      if (!Strings.isNullOrEmpty(delegateClass)) {
+        com.google.cloud.sql.sqlserver.SocketFactory fac = (com.google.cloud.sql.sqlserver.SocketFactory)
+          Class.forName(delegateClass).newInstance();
+        Socket delegate = fac.createSocket(address, port, localAddress, localPort);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      } else {
+        Socket delegate = javax.net.SocketFactory.getDefault().createSocket(address, port, localAddress, localPort);
+        return new BytesTrackingSocket(delegate, bytesWritten);
+      }
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      throw new IOException(String.format("Could not instantiate class %s", delegateClass), e);
+    }
   }
 }
